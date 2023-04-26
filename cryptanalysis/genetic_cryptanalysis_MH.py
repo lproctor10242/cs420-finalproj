@@ -61,6 +61,7 @@ class geneticCryptanalysis:
                 p_m: float,
                 p_c: float,
                 trn_size: int,
+                max_iter: int,
                 csv_output: str,
                 verbose: str
                 ) -> None:
@@ -96,6 +97,7 @@ class geneticCryptanalysis:
         self.pm = p_m
         self.pc = p_c
         self.trn = trn_size
+        self.max_iter
 
         self.csv_out = csv_output
         self.v = verbose
@@ -166,6 +168,9 @@ class geneticCryptanalysis:
 
             # increment to the next generation
             generation_counter()  
+            if generation_counter.generation() == self.max_iter:
+                print(f"No solution for block {i} found in {generation_counter.generation()} generations :(")
+                return ('0'*genome_length)
         
         if self.v:
             print(f"Solution for block {i} found in {generation_counter.generation()} generations!")
