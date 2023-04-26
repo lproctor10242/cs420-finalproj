@@ -1,4 +1,6 @@
-from merkle_hellman.merklehellman import MerkleHellman
+# Authored by Sam Dahms, with script sourced from Dr. Catherine Schuman
+# 
+# This script performs cryptanalysis on the Merkle-Hellman Knapsack Cipher using Genetic Algorithms
 
 from leap_ec import Individual, context, test_env_var
 from leap_ec import ops, probe, util
@@ -55,10 +57,12 @@ class geneticCryptanalysis:
                 plaintext: str,
                 public_key: list[int], 
                 ciphertext: list[int], 
-                pop: int = 100,
-                p_m: float = 0.1,
-                p_c: float = 0.1,
-                trn_size: int = 5
+                pop: int ,
+                p_m: float,
+                p_c: float,
+                trn_size: int,
+                csv_output: str,
+                verbose: str
                 ) -> None:
         
         block_count = len(ciphertext)
@@ -92,11 +96,18 @@ class geneticCryptanalysis:
         self.pm = p_m
         self.pc = p_c
         self.trn = trn_size
+
+        self.csv_out = csv_output
+        self.v = verbose
+
         self.solution = ''
 
         return None
 
     def geneticDecrypt(self) -> None:
+        if self.v:
+            print('Beginning Genetic Decryption Process\n')
+
         start = time.time()
         for i, c in enumerate(self.c):
             genome_length = len(self.pk)*len(c)
@@ -113,7 +124,7 @@ class geneticCryptanalysis:
             generation_counter = util.inc_generation()
 
             #open csv for writing
-            out_f = open("csvs/" + "block" +str(i)+".csv", "w")
+            out_f = open("cryptanalysis_csvs/" + self.csv_out + ".csv", "w")
             
             # tracks if solution has been found by evaluating the genome of the best invdividual of the last population
             best_genome = ''
@@ -144,11 +155,13 @@ class geneticCryptanalysis:
                 generation_counter()  
 
             self.solution += best_genome
-            print(f"Solution for block {i} found in {generation_counter.generation()} generations")
+            if self.v:
+                print(f"Solution for block {i} found in {generation_counter.generation()} generations\n")
             out_f.close() 
         
         end = time.time()
-        print(f'Time to complete: {end-start}')
+        if self.v:
+            print(f'Time to complete: {end-start}')
         return None
 
 # for testing purposes
@@ -160,34 +173,3 @@ def gcd(a, b):
 # for testing purposes
 def xnor (s1,s2):
     return ''.join(str(~(ord(a) ^ ord(b))+2) for a,b in zip(s1,s2))
-
-
-if __name__ == '__main__':
-
-    mh = MerkleHellman(8)
-    plaintext = ord("a")
-    print("Plaintext:", plaintext)
-    cipher = mh.encrypt(plaintext)
-    print("Cipher:", cipher)
-    plaintext = mh.decrypt(cipher)
-    print("Decrypted Cipher:", plaintext)
-
-    #os.system('python3 -m merkle_hellman.merklehellman')
-
-    message = 'ab'
-    binary = ''.join('{0:08b}'.format(ord(x), 'b') for x in message)
-
-    gc = geneticCryptanalysis( 
-                        plaintext = binary,
-                        public_key = [737275508093970824447, 1092420682627872412413, 982379061352518594124, 16930508469857996252, 988778712680290931315, 1197792263373058555151, 116348984040649682725, 873292266069408452212],
-                        ciphertext = [2051416755507679062323, 2406561930041580650289],
-                        pop = 50,
-                        p_m = 0.1,
-                        p_c = 0.8,
-                        trn_size = 5
-                        )
-
-    gc.geneticDecrypt()
-    print( f"message binary: {binary}")
-    print( f"found solution: {gc.solution}" )
-    
