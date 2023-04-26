@@ -10,13 +10,13 @@ from leap_ec.binary_rep.initializers import create_binary_sequence
 from leap_ec.binary_rep.ops import mutate_bitflip
 from leap_ec.binary_rep.problems import ScalarProblem
 
+from multiprocessing import Pool
 import numpy as np
 import os
 import pandas as pd
 import sys
 import time
 from toolz import pipe
-
 
 # Implementation of a custom genetic problem using leap
 class Problem(ScalarProblem):
@@ -100,69 +100,82 @@ class geneticCryptanalysis:
         self.csv_out = csv_output
         self.v = verbose
 
-        self.solution = ''
-
-        return None
-
-    def geneticDecrypt(self) -> None:
-        if self.v:
-            print('Beginning Genetic Decryption Process\n')
-
+        # start a timer
         start = time.time()
-        for i, c in enumerate(self.c):
-            genome_length = len(self.pk)*len(c)
-            parents = Individual.create_population(self.n,
-                                                initialize=create_binary_sequence(genome_length),
-                                                decoder=IdentityDecoder(),
-                                                problem=Problem(self.pk, c)
-                                                )
+       
+        # parallelize to solve each block simultaneously
+        with Pool() as pool:
+            solutions = list(pool.map(self.geneticDecrypt, zip(list(range(len(self.c))), self.c)))
 
-            # Evaluate initial population
-            parents = Individual.evaluate_population(parents)
-            
-            # begin generation counts
-            generation_counter = util.inc_generation()
-
-            #open csv for writing
-            out_f = open("cryptanalysis_csvs/" + self.csv_out + ".csv", "w")
-            
-            # tracks if solution has been found by evaluating the genome of the best invdividual of the last population
-            best_genome = ''
-            while best_genome != self.pt[i]:
-                # create offspring from the parents, mutate, and evaluate
-                offspring = pipe(parents,
-                                ops.tournament_selection(k=self.trn),
-                                ops.clone,
-                                mutate_bitflip(probability=self.pm),
-                                ops.uniform_crossover(p_xover=self.pc),
-                                ops.evaluate,
-                                # accumulate offspring, then write [generation, fitness, genome] of each new offspring to csv file
-                                ops.pool(size=len(parents)),
-                                probe.AttributesCSVProbe(stream=out_f, do_fitness=True, do_genome=True)
-                                )
-                
-                # evaluate best individual of a population to help determine if we've found the solution
-                best = probe.best_of_gen(offspring) 
-                best_genome, best_fitness = str(best).split('] ')
-                if best_fitness == '0.0':
-                    best_genome = best_genome.replace('[','')
-                    best_genome = best_genome.replace(' ','')
-                    best_genome = best_genome[::-1]
-
-                parents = offspring
-
-                # increment to the next generation
-                generation_counter()  
-
-            self.solution += best_genome
-            if self.v:
-                print(f"Solution for block {i} found in {generation_counter.generation()} generations\n")
-            out_f.close() 
-        
-        end = time.time()
+        # stop the timer
         if self.v:
-            print(f'Time to complete: {end-start}')
+            end = time.time()
+            print(f'\nTime to complete: {end-start}\n')
+
+        # concatenate all of the solutions
+        self.solution = ''.join(x for x in solutions)
+
         return None
+
+    def geneticDecrypt(self, t: tuple[int, list[int]]) -> str:
+        i = t[0]
+        c = t[1]
+        
+        if self.v:
+            print(f'Beginning Genetic Decryption Process for Block {i}')
+
+        genome_length = len(self.pk)
+        parents = Individual.create_population(self.n,
+                                            initialize=create_binary_sequence(genome_length),
+                                            decoder=IdentityDecoder(),
+                                            problem=Problem(self.pk, c)
+                                            )
+
+        # Evaluate initial population
+        parents = Individual.evaluate_population(parents)
+        
+        # begin generation counts
+        generation_counter = util.inc_generation()
+
+        #open csv for writing
+        out_f = open("cryptanalysis_csvs/" + self.csv_out + f"-b{i}.csv", "w")
+        
+        # tracks if solution has been found by evaluating the genome of the best invdividual of the last population
+        best_genome = ''
+        while best_genome != self.pt[i]:
+            # create offspring from the parents, mutate, and evaluate
+            offspring = pipe(parents,
+                            ops.tournament_selection(k=self.trn),
+                            ops.clone,
+                            mutate_bitflip(probability=self.pm),
+                            ops.uniform_crossover(p_xover=self.pc),
+                            ops.evaluate,
+                            # accumulate offspring, then write [generation, fitness, genome] of each new offspring to csv file
+                            ops.pool(size=len(parents)),
+                            probe.AttributesCSVProbe(stream=out_f, do_fitness=True, do_genome=True)
+                            )
+            
+            # evaluate best individual of a population to help determine if we've found the solution
+            best = probe.best_of_gen(offspring) 
+            best_genome, best_fitness = str(best).split('] ')
+            best_genome = best_genome.replace('[','')
+            best_genome = best_genome.replace(' ','')
+            best_genome = best_genome[::-1]
+
+            parents = offspring
+
+            # increment to the next generation
+            generation_counter()  
+        
+        if self.v:
+            print(f"Solution for block {i} found in {generation_counter.generation()} generations!")
+        
+        out_f.close() 
+        return best_genome
+
+# for testing purposes
+def xnor (s1,s2):
+    return ''.join(str(~(ord(a) ^ ord(b))+2) for a,b in zip(s1,s2))
 
 # for testing purposes
 def gcd(a, b):
@@ -170,6 +183,3 @@ def gcd(a, b):
         a, b = b, a % b
     return a
 
-# for testing purposes
-def xnor (s1,s2):
-    return ''.join(str(~(ord(a) ^ ord(b))+2) for a,b in zip(s1,s2))
