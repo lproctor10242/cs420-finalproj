@@ -19,11 +19,11 @@ if __name__ == '__main__':
     parser.add_argument("--int_max",    default=1000000,  help="maxsize of integers",      type=int)
     parser.add_argument("--ss_model",   default='simple', help="subset sum model, can be simple/wong/none", type=str)
 
-    parser.add_argument("--pop",        default=128,       help="population size",          type=int)
+    parser.add_argument("--pop",        default=64,       help="population size",          type=int)
     parser.add_argument("--p_m",        default=0.1,      help="probability of mutation",  type=float)
     parser.add_argument("--p_c",        default=0.7,      help="probability of crossover", type=float)
     parser.add_argument("--trn_size",   default=4,        help="tournament size",          type=int)
-    parser.add_argument("--max_iter",   default=1000,     help="max generations",           type=int)
+    parser.add_argument("--max_iter",   default=2500,     help="max generations",           type=int)
 
     parser.add_argument("--csv_output", required=True,    help="csv output file name",     type=str)
     parser.add_argument("--verbose",    default=False,    help="verbosity",                type=str)
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     for _ in range(num_blocks):
         x = random.getrandbits(pkl)
         plaintext_decimal.append(x)
-        plaintext_binary += str( bin(x)[2:] )
+        plaintext_binary += str( bin(x)[2:] ).zfill(int(pkl))
 
     mh = MerkleHellman(pkl, args.int_max, args.ss_model)
     cipher = mh.encrypt(plaintext_decimal)
@@ -58,9 +58,11 @@ if __name__ == '__main__':
                         verbose = v
                         )
 
+    print( f"Cryptanalysis Solution :: {gc.solution}" )
+
     if v:
         print( f"Original Binary String :: {plaintext_binary}")
-        print( f"Cryptanalysis Solution :: {gc.solution}" )
+        
 
         if pkl == 8:
             decimal_decrypted = mh.decrypt(cipher)
