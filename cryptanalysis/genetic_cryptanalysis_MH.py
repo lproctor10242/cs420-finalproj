@@ -72,25 +72,13 @@ class geneticCryptanalysis:
         blocksize = int( round( len(plaintext) / block_count ) )
         self.pt = []
         for i in range (0, block_count):
-            if i == block_count-1:
-                self.pt.append( plaintext[blocksize*i:] )
-            else:
-                self.pt.append( plaintext[blocksize*i:blocksize*(i+1)] )
-        
-        if self.pt[-1] == []:
-            self.pt.remove([])
+            self.pt.append( plaintext[blocksize*i:blocksize*(i+1)] )
 
         # self.c is not the cipher, but a list of cipher blocks
         blocksize = int( round( len(ciphertext) / block_count ) )
         self.c = []
         for i in range(0,block_count):
-            if i == block_count-1:
-                self.c.append( ciphertext[blocksize*i:] )
-            else:
-                self.c.append( ciphertext[blocksize*i:blocksize*(i+1)] )
-        
-        if self.c[-1] == []:
-            self.c.remove([])
+            self.c.append( ciphertext[blocksize*i:blocksize*(i+1)] )
 
         self.pk = public_key
         self.n = pop
@@ -170,7 +158,7 @@ class geneticCryptanalysis:
             generation_counter()  
             if generation_counter.generation() == self.max_iter:
                 print(f"No solution for block {i} found in {generation_counter.generation()} generations :(")
-                return ('0'*genome_length)
+                return ('2'*genome_length)
         
         if self.v:
             print(f"Solution for block {i} found in {generation_counter.generation()} generations!")
