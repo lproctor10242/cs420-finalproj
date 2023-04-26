@@ -110,7 +110,7 @@ class MerkleHellman:
                     200,
                     float(1 / self.pk_len),
                     0.7,
-                    int(0.2 * self.pk_len),
+                    int(0.2 * self.pk_len) + 1,
                     self.weights,
                     c_new,
                     "output.csv",
@@ -119,7 +119,7 @@ class MerkleHellman:
                 ss_solution = SubsetSumGAWong(
                     200,
                     0.6,
-                    0.999,
+                    0.99,
                     self.weights,
                     c_new,
                 ).solution
@@ -134,8 +134,8 @@ class MerkleHellman:
 
 
 if __name__ == "__main__":
-    mh = MerkleHellman(8, 1000, "simple")
-    plaintext = [ord("a"), ord("b")]
+    mh = MerkleHellman(2, 1000, "simple")
+    plaintext = [3]
     print("Plaintext:", plaintext)
     print("Public Key:", mh.pub_key)
     ciphers = mh.encrypt(plaintext)
