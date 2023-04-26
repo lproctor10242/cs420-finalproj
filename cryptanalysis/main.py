@@ -30,31 +30,15 @@ if __name__ == '__main__':
     args = parser.parse_args()    
 
     pub_key_l = args.pub_key_l
-    if pub_key_l%8 != 0:
-        print("Please Make the Public Key Length a factor of 8, thanks!")
-        sys.exit()
-
-    plaintext = ''
-    plaintext_list = []
-
     num_blocks = args.num_blocks
-    for _ in range(num_blocks):
-        randomstring = ''.join(random.choices(string.ascii_lowercase, k=int(pub_key_l/8)))
-        plaintext += randomstring
-        plaintext_list.append(randomstring)
 
-    plaintext_binary = ''.join('{0:08b}'.format(ord(x), 'b') for x in plaintext)
+    plaintext_binary = ''
     plaintext_decimal = []
-    for x in plaintext_list:
-        val = 0
-        for y in range(int(pub_key_l/8)):
-            if y+1 == int(pub_key_l/8):
-                val += ord(x[y])
-            else:
-                val = (ord(x[y]) << 8)
-        plaintext_decimal.append( val )
+    for _ in range(num_blocks):
+        x = random.getrandbits(pub_key_l)
+        plaintext_decimal.append(x)
+        plaintext_binary += str( bin(x)[2:] )
 
-    
     int_max = args.int_max
     ss_model = args.ss_model
 
@@ -85,7 +69,7 @@ if __name__ == '__main__':
         print( f"Original Binary String :: {plaintext_binary}")
         print( f"Cryptanalysis Solution :: {gc.solution}" )
 
-        if pub_key_l <= 8:
+        if pub_key_l == 8:
             decimal_decrypted = mh.decrypt(cipher)
             binary_decrypted = ''.join(bin(x)[2:].zfill(8) for x in decimal_decrypted)
             print( f"MH Decrypted Plaintext :: {binary_decrypted}")
