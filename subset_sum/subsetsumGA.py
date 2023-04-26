@@ -1,13 +1,16 @@
 # imports
-from leap_ec import Individual
-from leap_ec import ops, util
-from leap_ec.decoder import IdentityDecoder
-from leap_ec.binary_rep.initializers import create_binary_sequence
-from leap_ec.binary_rep.ops import mutate_bitflip
-from leap_ec.binary_rep.problems import ScalarProblem
+import os
 import numpy as np
 import random
 from toolz import pipe
+from leap_ec import Individual, context, test_env_var
+from leap_ec import ops, probe, util
+from leap_ec.decoder import IdentityDecoder
+from leap_ec.binary_rep.problems import MaxOnes
+from leap_ec.binary_rep.initializers import create_binary_sequence
+from leap_ec.binary_rep.ops import mutate_bitflip
+from leap_ec.binary_rep.problems import ScalarProblem
+import sys
 
 
 # fitness function class
@@ -68,7 +71,7 @@ class SubsetSumGASimple:
         generation_counter = util.inc_generation()
 
         # open output CSV for writing
-        # out_f = open(self.csv_out, "w")
+        out_f = open(self.csv_out, "w")
         ss_sol_list = []
         sol_found = 0
 
@@ -83,7 +86,7 @@ class SubsetSumGASimple:
                 ops.uniform_crossover(p_xover=self.p_c),
                 ops.evaluate,
                 ops.pool(size=len(parents)),  # accumulate offspring
-                # probe.AttributesCSVProbe(stream=out_f, do_fitness=True, do_genome=True),
+                probe.AttributesCSVProbe(stream=out_f, do_fitness=True, do_genome=True),
             )
 
             # update population and increment to next generation
@@ -98,7 +101,7 @@ class SubsetSumGASimple:
             generation_counter()
 
         # close output CSV
-        # out_f.close()
+        out_f.close()
         self.solution = parents[ss_sol_list.index(self.target)].genome
 
 
@@ -116,6 +119,14 @@ class SubsetSumGAWong:
 
         # run GA
         self.runGA()
+
+    # survival of the fittest selection function for parents
+    def selectParents(self, parents, k=3):
+        index = np.random.randint(low=0, high=self.N-1)
+        for i in range(0, self.N, k-1):
+            if parents[i].fitness < parents[index].fitness:
+                index = i
+        return parents[index]
 
     # perform crossover based on probability
     def crossover(self, pair, p_c: float):
@@ -142,7 +153,6 @@ class SubsetSumGAWong:
         indices = [i for i in range(len(parents))]
 
         # enter loop to generate child population
-        # TODO reconfigure parents array
         while (1):
 
             # get parent pairs, and find difference degrees
@@ -159,6 +169,7 @@ class SubsetSumGAWong:
                     children.append(child_pair[0])
                     children.append(child_pair[1])
 
+            # check for update completion
             if len(children) == self.N:
                 break
             else:
@@ -193,7 +204,10 @@ class SubsetSumGAWong:
         # loop through generations of GA
         while sol_found == 0:
             # update population
-            parents = self.updatePopulation(parents, self.d_deg)
+            children = self.updatePopulation(parents, self.d_deg)
+            if children == parents:
+                print("oops!") # TODO: figure out why for some runs the population does not update correctly
+            parents = children
 
             # update ss_sol
             ss_sol_list = [np.dot(self.ss_list, i.genome) for i in parents]
