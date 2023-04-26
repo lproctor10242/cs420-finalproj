@@ -97,7 +97,7 @@ class geneticCryptanalysis:
         self.pm = p_m
         self.pc = p_c
         self.trn = trn_size
-        self.max_iter
+        self.max_iter = max_iter
 
         self.csv_out = csv_output
         self.v = verbose
