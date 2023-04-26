@@ -10,7 +10,7 @@ import random
 from toolz import pipe
 
 
-# implementation based on 2012 paper by Bhasin and Singla
+# fitness function class
 class SubsetSumGAFitness(ScalarProblem):
     def __init__(self, ss_list, target_sum):
         super().__init__(maximize=False)
@@ -135,7 +135,6 @@ class SubsetSumGAWong:
                 if np.random.uniform(low=0.0, high=1.0) <= p_m:
                     i.genome[j] = 1 - i.genome[j]
         return Individual.evaluate_population(pair)
-
 
     def updatePopulation(self, parents, d_thresh):
         # initialize number of children

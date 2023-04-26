@@ -59,6 +59,26 @@ class MerkleHellman:
         else:
             return None
 
+    # if ga_model == none, use standard subset sum solver for MH
+    def subsetSum(self, target: int):
+        # get subset sum indices
+        indices = []
+        i = self.pk_len - 1
+        while i >= 0:
+            if self.weights[i] <= target:
+                indices.append(i)
+                target -= self.weights[i]
+            i -= 1
+
+        # form binary solution array and return 
+        solution = []
+        for i in range(len(self.weights)):
+            if i in indices:
+                solution.append(1)
+            else:
+                solution.append(0)
+        return solution
+
     # encrypt function
     def encrypt(self, plaintext: list):
         if self.pub_key:
@@ -103,6 +123,8 @@ class MerkleHellman:
                     self.weights,
                     c_new,
                 ).solution
+            elif self.ga_model == "none":
+                ss_solution = self.subsetSum(c_new)
 
             # append decrypted block to plaintext array
             plaintext.append(int("".join(str(j) for j in ss_solution)[::-1], base=2))
@@ -116,7 +138,7 @@ if __name__ == "__main__":
     plaintext = [ord("a"), ord("b")]
     print("Plaintext:", plaintext)
     print("Public Key:", mh.pub_key)
-    cipher = mh.encrypt(plaintext)
-    print("Cipher:", cipher)
-    plaintext = mh.decrypt(cipher)
+    ciphers = mh.encrypt(plaintext)
+    print("Cipher:", ciphers)
+    plaintext = mh.decrypt(ciphers)
     print("Decrypted Cipher:", plaintext)
