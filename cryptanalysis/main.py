@@ -6,43 +6,55 @@ from cryptanalysis.genetic_cryptanalysis_MH import geneticCryptanalysis
 from merkle_hellman.merklehellman import MerkleHellman
 
 import argparse
+import random
+import string
 import sys
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Cryptanalysis of the Merkle-Hellman Knapsack Cipher utilizing a Genetic Algorithm")
-    
-    parser.add_argument("--plaintext",  default='ab',     help="message to crack, MAX LENGTH OF 5 (for now)", type=str)
 
-    parser.add_argument("--pub_key_l",  default=16,       help="public key length",        type=int)
+    parser.add_argument("--pub_key_l",  default=8,        help="public key length",        type=int)
+    parser.add_argument("--num_blocks", default=2,        help="how many parallel splits", type=int)
     parser.add_argument("--int_max",    default=1000000,  help="maxsize of integers",      type=int)
     parser.add_argument("--ss_model",   default='simple', help="subset sum model, can be simple/wong/none", type=str)
 
-    parser.add_argument("--pop",        default=50,       help="population size",          type=int)
-    parser.add_argument("--p_m",        default=0.01,     help="probability of mutation",  type=float)
-    parser.add_argument("--p_c",        default=0.3,      help="probability of crossover", type=float)
-    parser.add_argument("--trn_size",   default=2,        help="tournament size",          type=int)
+    parser.add_argument("--pop",        default=128,       help="population size",          type=int)
+    parser.add_argument("--p_m",        default=0.1,     help="probability of mutation",  type=float)
+    parser.add_argument("--p_c",        default=0.7,      help="probability of crossover", type=float)
+    parser.add_argument("--trn_size",   default=4,        help="tournament size",          type=int)
 
-    parser.add_argument("--csv_output", required=False,   help="csv output file name",     type=str)
+    parser.add_argument("--csv_output", required=True,    help="csv output file name",     type=str)
     parser.add_argument("--verbose",    default=False,    help="verbosity",                type=str)
     
     args = parser.parse_args()    
-    
-    pt = args.plaintext
-    if len(pt) > 6:
-        print("--plaintext argument must be 5 characters or less (for now), sorry!")
-        sys.exit(1)
-    
-    plaintext = []
-    for ch in pt:
-        plaintext.append(ch)
+
+    pub_key_l = args.pub_key_l
+    if pub_key_l%8 != 0:
+        print("Please Make the Public Key Length a factor of 8, thanks!")
+        sys.exit()
+
+    plaintext = ''
+    plaintext_list = []
+
+    num_blocks = args.num_blocks
+    for _ in range(num_blocks):
+        randomstring = ''.join(random.choices(string.ascii_lowercase, k=int(pub_key_l/8)))
+        plaintext += randomstring
+        plaintext_list.append(randomstring)
 
     plaintext_binary = ''.join('{0:08b}'.format(ord(x), 'b') for x in plaintext)
     plaintext_decimal = []
-    for x in plaintext:
-        plaintext_decimal.append(ord(x))
+    for x in plaintext_list:
+        val = 0
+        for y in range(int(pub_key_l/8)):
+            if y+1 == int(pub_key_l/8):
+                val += ord(x[y])
+            else:
+                val = (ord(x[y]) << 8)
+        plaintext_decimal.append( val )
 
-    pub_key_l = args.pub_key_l
+    
     int_max = args.int_max
     ss_model = args.ss_model
 
@@ -56,7 +68,6 @@ if __name__ == '__main__':
 
     csv_out = args.csv_output
     v = args.verbose
-    v = True
 
     gc = geneticCryptanalysis( 
                         plaintext = plaintext_binary,
@@ -70,10 +81,16 @@ if __name__ == '__main__':
                         verbose = v
                         )
 
-    gc.geneticDecrypt()
+    if v:
+        print( f"Original Binary String :: {plaintext_binary}")
+        print( f"Cryptanalysis Solution :: {gc.solution}" )
 
-    decimal_decrypted = mh.decrypt(cipher)
-    binary_decrypted = ''.join(bin(x)[2:].zfill(8) for x in decimal_decrypted)
+        if pub_key_l <= 8:
+            decimal_decrypted = mh.decrypt(cipher)
+            binary_decrypted = ''.join(bin(x)[2:].zfill(8) for x in decimal_decrypted)
+            print( f"MH Decrypted Plaintext :: {binary_decrypted}")
 
-    print( f"Cryptanalysis Solution :: {gc.solution}" )
-    print( f"MH Decrypted Plaintext :: {binary_decrypted}")
+    
+    
+
+    
